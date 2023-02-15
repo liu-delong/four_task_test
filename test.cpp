@@ -8,7 +8,7 @@
 using namespace std;
 #define matrix_size 100
 #define pow_time 1000
-#define sudoku_size 10
+#define sudoku_size 7500
 #define task1_core 0
 #define task2_core 1
 #define task3_core 0
@@ -17,31 +17,33 @@ void generate(char* buf);
 void task1_2_func()
 {
     generate_10000_redundance_code
-    vector<vector<int>> matrix(matrix_size,vector<int>(matrix_size));
+    //vector<vector<int>> matrix(matrix_size,vector<int>(matrix_size));
     default_random_engine e;
     uniform_real_distribution<double> u(0.0,1.0);
     generate_10000_redundance_code
     e.seed(time(0));
+    volatile double a;
     for(int i=0;i<matrix_size;i++)
     {
         for(int j=0;j<matrix_size;j++)
         {
-            matrix[i][j]=u(e);
+            a=u(e);
         }
     }
     generate_10000_redundance_code
+    volatile double a1=0,b=u(e),c=u(e);
     for(int p=0;p<pow_time;p++)
     {
-        auto matrix1=matrix;
-        auto matrix2=matrix;
+        //auto matrix1=matrix;
+        //auto matrix2=matrix;
         for(int i=0;i<matrix_size;i++)
         {
             for(int j=0;j<matrix_size;j++)
             {
-                matrix[i][j]=0;
+                
                 for(int k=0;k<matrix_size;k++)
                 {
-                    matrix[i][j]+=matrix1[i][k]*matrix2[k][j];
+                    a1+=b*c;
                 }
             }
         }
@@ -52,8 +54,8 @@ void task3_4_func()
 {
     generate_10000_redundance_code
     generate_10000_redundance_code
-    auto source=new char[82];
-    auto answer=new char[83];
+    char source[82];
+    char answer[83];
     ProblemArgv argv={source,answer};
     generate_10000_redundance_code
     generate_10000_redundance_code
