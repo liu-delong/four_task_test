@@ -1,0 +1,38 @@
+实验时间2月16日11：00。我的物理机。
+还是同一个问题，为什么长短任务会一致？
+liudelong@liudelong:~/four_task_test$ make fmt_test
+g++ main.cpp -O0 -lpthread -o four_matrix_task
+sudo perf stat -e cache-misses ./four_matrix_task bujunheng
+[sudo] liudelong 的密码： 
+task_4_matrix_mul:,1,1000,10,98574104958
+ task_3_matrix_mul:,1,1000,10,98606691427
+ task_1_matrix_mul:,0,1000,20,98746298892
+ task_2_matrix_mul:,0,1000,20,98759633309
+ 
+ Performance counter stats for './four_matrix_task bujunheng':
+
+        27,911,832      cache-misses                                                
+
+      98.945356602 seconds time elapsed
+
+     197.501021000 seconds user
+       0.011998000 seconds sys
+
+
+sudo perf stat -e cache-misses ./four_matrix_task
+task_4_matrix_mul:,1,1000,10,99452678706
+ task_2_matrix_mul:,1,1000,20,99477602653
+ task_1_matrix_mul:,0,1000,20,99814772016
+ task_3_matrix_mul:,0,1000,10,99825438677
+ 
+ Performance counter stats for './four_matrix_task':
+
+        39,090,473      cache-misses                                                
+
+      99.991151173 seconds time elapsed
+
+     199.424586000 seconds user
+       0.011998000 seconds sys
+
+
+

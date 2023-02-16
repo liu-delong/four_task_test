@@ -1,0 +1,33 @@
+实验时间：2月16日 11：08这次把短任务放到了cpu2,是处于单核双线程的考虑，cpu0和1是同一个cpu。但还是有为什么长短任务会一样的疑问。
+g++ main.cpp -O0 -lpthread -o four_matrix_task
+sudo perf stat -e cache-misses ./four_matrix_task bujunheng
+task_4_matrix_mul:,2,1000,10,104681661867
+ task_3_matrix_mul:,2,1000,10,104701137012
+ task_1_matrix_mul:,0,1000,20,106404290574
+ task_2_matrix_mul:,0,1000,20,106428727963
+ 
+ Performance counter stats for './four_matrix_task bujunheng':
+
+        30,033,207      cache-misses                                                
+
+     106.618419995 seconds time elapsed
+
+     211.278691000 seconds user
+       0.007999000 seconds sys
+
+
+sudo perf stat -e cache-misses ./four_matrix_task
+task_4_matrix_mul:,2,1000,10,95883074719
+ task_2_matrix_mul:,2,1000,20,95885857002
+ task_3_matrix_mul:,0,1000,10,96582744302
+ task_1_matrix_mul:,0,1000,20,96618039926
+ 
+ Performance counter stats for './four_matrix_task':
+
+        31,720,541      cache-misses                                                
+
+      96.780674432 seconds time elapsed
+
+     192.620360000 seconds user
+       0.011998000 seconds sys
+

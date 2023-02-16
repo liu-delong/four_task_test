@@ -1,0 +1,34 @@
+实验时间：11：14
+liudelong@liudelong:~/four_task_test$ make fmt_test
+g++ main.cpp -O0 -lpthread -o four_matrix_task
+sudo perf stat -e cache-misses ./four_matrix_task bujunheng
+task_1_matrix_mul:,0,1000,20,102405556951
+ task_2_matrix_mul:,0,1000,20,102424087873
+ task_3_matrix_mul:,2,1000,1,102530317069
+ task_4_matrix_mul:,2,1000,1,102560278208
+ 
+ Performance counter stats for './four_matrix_task bujunheng':
+
+        45,406,314      cache-misses                                                
+
+     102.727535267 seconds time elapsed
+
+     205.096176000 seconds user
+       0.007998000 seconds sys
+
+
+sudo perf stat -e cache-misses ./four_matrix_task
+task_4_matrix_mul:,2,1000,1,94618988577
+ task_2_matrix_mul:,2,1000,20,94648207054
+ task_1_matrix_mul:,0,1000,20,95657587848
+ task_3_matrix_mul:,0,1000,1,95718269984
+ 
+ Performance counter stats for './four_matrix_task':
+
+        56,073,844      cache-misses                                                
+
+      95.877828299 seconds time elapsed
+
+     190.475335000 seconds user
+       0.007998000 seconds sys
+

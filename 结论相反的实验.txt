@@ -1,3 +1,40 @@
+实验时间：2月16日10：50 我的物理机 隔离cpu0,1,2,3
+疑问，为什么长任务和短任务运行时间会差不多？11：15分破案。。。看本文本第70行。。。。
+liudelong@liudelong:~/four_task_test$ make fmt_test
+g++ main.cpp -O0 -lpthread -o four_matrix_task
+sudo perf stat -e cache-misses ./four_matrix_task bujunheng
+[sudo] liudelong 的密码： 
+task_4_matrix_mul:,1,1000,10,560726407887
+ task_3_matrix_mul:,1,1000,10,561098311747
+ task_1_matrix_mul:,0,1000,100,566463368509
+ task_2_matrix_mul:,0,1000,100,566576426115
+ 
+ Performance counter stats for './four_matrix_task bujunheng':
+
+       200,408,905      cache-misses                                                
+
+     566.742099754 seconds time elapsed
+
+    1127.734254000 seconds user
+       0.011999000 seconds sys
+
+
+sudo perf stat -e cache-misses ./four_matrix_task
+task_4_matrix_mul:,1,1000,10,469982738818
+ task_2_matrix_mul:,1,1000,100,469992895148
+ task_1_matrix_mul:,0,1000,100,471331174097
+ task_3_matrix_mul:,0,1000,10,471497398798
+ 
+ Performance counter stats for './four_matrix_task':
+
+        94,568,109      cache-misses                                                
+
+     471.670200504 seconds time elapsed
+
+     941.595847000 seconds user
+       0.011999000 seconds sys
+       
+       
 #include<iostream>
 #include<random>
 #include<thread>
@@ -8,7 +45,7 @@
 using namespace std;
 using namespace std::chrono;
 #define matrix_size 1000
-#define mul_time_1 20
+#define mul_time_1 100
 #define mul_time_2 10
 double matrixA1[matrix_size][matrix_size];
 double matrixB1[matrix_size][matrix_size];
@@ -30,7 +67,7 @@ void matrix_mul(int cpu,string task_name,int mul_time)
     tie_self_thread_to_cpu(cpu);
     auto begin=high_resolution_clock::now();
     volatile double c=0;
-    for(int p=0;p<mul_time;p++)
+    for(int p=0;p<mul_time_1;p++)
     {
         for(int i=0;i<matrix_size;i++)
         {
@@ -55,13 +92,13 @@ int main(int argc,char** argv)
     uniform_real_distribution<double> u(0,100);
     default_random_engine e;
     e.seed(time(0));
-    int task_1_cpu=0,task_2_cpu=2,task_3_cpu=0,task_4_cpu=2;
+    int task_1_cpu=0,task_2_cpu=1,task_3_cpu=0,task_4_cpu=1;
     if((argc==2)&&string(argv[1])=="bujunheng")
     {
         task_1_cpu=0;
         task_2_cpu=0;
-        task_3_cpu=2;
-        task_4_cpu=2;
+        task_3_cpu=1;
+        task_4_cpu=1;
     }
     for(int i=0;i<matrix_size;i++)
     {
