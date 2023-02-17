@@ -1,0 +1,134 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>探索负载均衡与cache_misses的关系的实验。</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1><a id="_0"></a>实验背景</h1>
+<p>考虑4个任务：任务A和任务B比较长，任务C和任务D比较短。任务A和任务B有比较强的内存相关性即他们要么代码段有很多重合的地方，要么数据有很多重合的地方。同样的，任务C和任务D也有比较强的内存相关性。但是任务A和任务C几乎没有内存相关性，任务B和D也没有内存相关性。现在有两个CPU核心。如果把任务A和任务C调度到核心1上，任务C和任务D调度到核心2上，那么负载是均衡的。不过，这样的调度方案对cache未必是友好的。每个CPU核心都有一个私有的L1 cache。由于任务A和任务C没有内存相关性，任务A执行的时候，会把任务C的缓存替换出去。同样，任务C执行的时候，也会把任务A的缓存替换出去。这样会大大提高cache_miss。降低CPU性能。把任务A和任务B放到一个核心上，虽然会导致负载不均衡，使得任务A和任务B的核心需要花费更多的时间去完成任务，而另一个核心在完成任务后进入空闲状态。但是这种调度方法对cache是友好的。原因是：第一，Linux的CFS调度让任务A和任务B几乎按相同的进度进行。第二，任务A加载的缓存，任务B可以复用。这样能降低cache_miss,从而提高性能。这就导致了一个需要权衡的点，到底应该优先考虑负载均衡把任务A和B放在不同的核心上，还是优先考虑cache，把任务A和B放到同一个核心上？</p>
+<h1><a id="_2"></a>实验目的</h1>
+<p>证明把任务A和任务B放到同一个核心上运行，对cache更友好。</p>
+<h1><a id="_4"></a>实验设计</h1>
+<h2><a id="_5"></a>任务设计</h2>
+<p>4个任务都运行矩阵乘法。任务A和任务B对矩阵1(1000x1000,double类型)和矩阵2(1000x1000,double类型)进行乘法运算。重复计算20次。任务C和任务D对矩阵3(1000x1000,double类型）和矩阵4（1000x1000,double类型）进行乘法 运算。重复10次。<br>
+为了更好地体现内存相关性，这里的矩阵乘法不存储结果。矩阵元素相乘的结果全部累加到一个变量中 。这样使得任务A和任务B几乎没有私有的内存空间。从而使实验效果更加明显。</p>
+<h2><a id="_8"></a>实验安排</h2>
+<p><strong>第一组实验：负载不均衡</strong><br>
+把任务A和任务B放到cpu 0中。把任务C和任务D放到cpu 2中。<br>
+<strong>第二组实验：负载均衡</strong><br>
+把任务A和任务C放到cpu 0中。把任务B和任务D放到cpu 2中。</p>
+<h2><a id="_14"></a>实验工具</h2>
+<p>本实验使用perf工具监控任务的cache_misses。发生cache_misses时，相应的硬件计数器就加1。perf在进程开始的时候检查一次硬件计数器，记录开始时的cache_misses次数。在进程结束后检查一次硬件计数器，记录此时的cache_misses次数。两个数据相减就是这个进程生命周期发生的cache_misses。</p>
+<h2><a id="_16"></a>实验环境</h2>
+<p>cpu型号：Intel® Core™ i7-9750H CPU @ 2.60GHz<br>
+L1d 缓存：                       192 KiB<br>
+L1i 缓存：                       192 KiB<br>
+L2 缓存：                        1.5 MiB<br>
+L3 缓存：                        12 MiB<br>
+核心数：6核12线程<br>
+Ubuntu 20.04 linux内核版本5.15.60-generic</p>
+<p>为了消除系统上其他线程的影响，实验时屏蔽了cpu0-3，使得4个任务独享cpu0和cpu2。<br>
+使用cpu0和cpu2的原因是，实验cpu是每核双线程。逻辑cpu0和逻辑cpu1是同一个物理核，有相同的L1 cache。</p>
+<h2><a id="_27"></a>实验代码</h2>
+<pre><code>#include&lt;iostream&gt;
+#include&lt;random&gt;
+#include&lt;thread&gt;
+#include &lt;mutex&gt;
+#include&lt;cstdio&gt;
+#include &lt;chrono&gt;
+#include&lt;string&gt;
+using namespace std;
+using namespace std::chrono;
+#define matrix_size 1000
+#define mul_time_1 20
+#define mul_time_2 10
+double matrixA1[matrix_size][matrix_size];
+double matrixB1[matrix_size][matrix_size];
+double matrixA2[matrix_size][matrix_size];
+double matrixB2[matrix_size][matrix_size];
+std::mutex print_mutex;
+/*
+把当前线程绑定到@cpu_num中。cpu_num从0开始引索
+*/
+void tie_self_thread_to_cpu(int cpu_num)
+{
+    cpu_set_t mask;
+    CPU_ZERO(&amp;mask);
+    CPU_SET(cpu_num, &amp;mask); //指定该线程使用的CPU
+    if (pthread_setaffinity_np(pthread_self(), sizeof(mask), &amp;mask) &lt; 0) 
+    {
+        perror("pthread_setaffinity_np");
+    }
+}
+void matrix_mul(int cpu,string task_name,int mul_time)
+{
+    tie_self_thread_to_cpu(cpu);
+    auto begin=high_resolution_clock::now();
+    volatile double c=0;
+    for(int p=0;p&lt;mul_time;p++)
+    {
+        for(int i=0;i&lt;matrix_size;i++)
+        {
+            for(int j=0;j&lt;matrix_size;j++)
+            {
+                for(int k=0;k&lt;matrix_size;k++)
+                {
+                    c+=matrixA1[i][k]*matrixB1[k][i];
+                }
+            }
+        }
+    }
+    auto end=high_resolution_clock::now();
+    print_mutex.lock();
+    printf("%s,%d,%d,%d,%ld\n ",task_name.c_str(),cpu,matrix_size,mul_time,(end-begin).count());
+    print_mutex.unlock();
+}
+
+
+int main(int argc,char** argv)
+{
+    uniform_real_distribution&lt;double&gt; u(0,100);
+    default_random_engine e;
+    e.seed(time(0));
+    int task_1_cpu=0,task_2_cpu=2,task_3_cpu=0,task_4_cpu=2;
+    if((argc==2)&amp;&amp;string(argv[1])=="bujunheng")
+    {
+        task_1_cpu=0;
+        task_2_cpu=0;
+        task_3_cpu=2;
+        task_4_cpu=2;
+    }
+    for(int i=0;i&lt;matrix_size;i++)
+    {
+        for(int j=0;j&lt;matrix_size;j++)
+        {
+            matrixA1[i][j]=u(e);
+            matrixB2[i][j]=u(e);
+            matrixB1[i][j]=u(e);
+            matrixA2[i][j]=u(e);
+        }
+    }
+    thread t1_matrix_mul(matrix_mul,task_1_cpu,"task_1_matrix_mul:",mul_time_1);
+    thread t2_matrix_mul(matrix_mul,task_2_cpu,"task_2_matrix_mul:",mul_time_1);
+    thread t3_matrix_mul(matrix_mul,task_3_cpu,"task_3_matrix_mul:",mul_time_2);
+    thread t4_matrix_mul(matrix_mul,task_4_cpu,"task_4_matrix_mul:",mul_time_2);
+    t1_matrix_mul.join();
+    t2_matrix_mul.join();
+    t3_matrix_mul.join();
+    t4_matrix_mul.join();
+}
+
+</code></pre>
+<h1><a id="_119"></a>结果分析</h1>
+<p><img src="https://img-blog.csdnimg.cn/34422d3034154343aea7610deedb4698.png" alt="请添加图片描述"><br>
+上半部分是第一组实验的结果，下半部分是第二组实验的结果。<br>
+此实验可以证明：任务A和任务B放到同一个核心上运行，对cache更友好。相比于把任务A和任务C放在同一个核心上，减少了28.2%的cache misses。</p>
+</div>
+</body>
+
+</html>

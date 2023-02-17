@@ -17,3 +17,8 @@ four_matrix_task:main.cpp
 fmt_test:four_matrix_task
 	sudo perf stat -e cache-misses ./four_matrix_task bujunheng
 	sudo perf stat -e cache-misses ./four_matrix_task
+fmt_test_pro:four_matrix_task
+	sudo ./four_matrix_task bujunheng &
+	sudo ps -a -T -w 200| grep "four_matrix_task" | awk 'NR==1 {print $1}'|xargs perf stat -e cache-misses --per-thread -p 
+
+

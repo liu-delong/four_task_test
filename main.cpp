@@ -15,6 +15,9 @@ double matrixB1[matrix_size][matrix_size];
 double matrixA2[matrix_size][matrix_size];
 double matrixB2[matrix_size][matrix_size];
 std::mutex print_mutex;
+/*
+把当前线程绑定到@cpu_num中。cpu_num从0开始引索
+*/
 void tie_self_thread_to_cpu(int cpu_num)
 {
     cpu_set_t mask;
