@@ -1,0 +1,11 @@
+
+ Performance counter stats for './fmt_test_pro':
+
+        19,973,270      cache-misses                                                
+
+      75.571417209 seconds time elapsed
+
+     150.449633000 seconds user
+       0.015999000 seconds sys
+
+

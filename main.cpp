@@ -7,9 +7,16 @@
 #include<string>
 using namespace std;
 using namespace std::chrono;
-#define matrix_size 1000
-#define mul_time_1 20
-#define mul_time_2 10
+// #ifndef matrix_size
+// #define matrix_size 1000
+// #endif
+// #ifndef mul_time_1
+// #define mul_time_1 20
+// #endif
+// #ifndef mul_time_2
+// #define mul_time_2 10
+// #endif
+
 double matrixA1[matrix_size][matrix_size];
 double matrixB1[matrix_size][matrix_size];
 double matrixA2[matrix_size][matrix_size];
